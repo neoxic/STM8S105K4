@@ -1,0 +1,31 @@
+cmake_minimum_required(VERSION 3.15)
+set(MCU "STM8S105K4" CACHE STRING "Target MCU.")
+set(PROG "stlinkv2" CACHE STRING "Programmer type.")
+set(CMAKE_SYSTEM_NAME Generic)
+set(CMAKE_C_COMPILER sdcc)
+set(CMAKE_C_COMPILER_WORKS 1)
+set(CMAKE_C_FLAGS -mstm8)
+set(CMAKE_C_FLAGS_DEBUG --debug)
+set(FLASH stm8flash -p ${MCU} -c ${PROG})
+project(Firware C)
+
+function(add_object name)
+	foreach(name_ ${name} ${ARGN})
+		list(APPEND srcs src/${name_}.c)
+	endforeach()
+	add_library(${name} OBJECT ${srcs})
+endfunction()
+
+function(add_target name)
+	add_executable(${name} src/${name}.c)
+	target_link_libraries(${name} ${ARGN})
+	add_custom_target(flash-${name} COMMAND ${FLASH} -w ${name}.ihx DEPENDS ${name})
+endfunction()
+
+add_object(hse)
+add_object(serial)
+
+add_target(lxyrc hse serial)
+add_target(passthru)
+
+add_custom_target(flash-opts COMMAND ${FLASH} -s opt -w ${CMAKE_SOURCE_DIR}/etc/opts.ihx)
